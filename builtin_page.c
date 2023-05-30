@@ -1,7 +1,11 @@
 #include "builtin_page.h"
 
 #define MAX_SIZE_BUFFER 10240
+#define BUFF_SIZE 1024
+
 #define HTML_PAGE "./templates/page.html"
+#define ITEM_TABLE_TEMPLATE "./templates/item.html"
+
 #define HTTP_HEADER "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
 #define HTML_TABLE_HEAR "<!-- TABLE_HEAR -->"
 
@@ -24,28 +28,8 @@ char **load_html_page() {
     return html;
 }
 
-void build_table_name(char *html_response, char *url, char *file, struct stat st) {
-    char* block = (char *) malloc(1024);
-    sprintf(block, "<td><a href=\"%s\">", url);
-    strcat(html_response, block);
-
-    if (S_ISDIR(st.st_mode)) {
-        strcat(html_response, "<span><div class=\"folder\"></div> ");
-    } else {
-        strcat(html_response, "<span><div class=\"file\"></div> ");
-    }
-    strcat(html_response, file);
-
-    strcat(html_response, "</span></a>");
-    strcat(html_response, "</td>");
-
-    free(block);
-}
-
-void build_table_size(char *html_response, struct stat st) {
-    strcat(html_response, "<td class=\"center\">");
-
-    char aux[64];
+char* get_size(struct stat st) {
+    char *size = (char *) malloc(100);
     if (!S_ISDIR(st.st_mode)) {
         unsigned long t = st.st_size / 1024;
         char *type;
@@ -62,34 +46,32 @@ void build_table_size(char *html_response, struct stat st) {
             type = " kb";
         }
 
-        sprintf(aux, "%ld", t);
-        strcat(html_response, aux);
-        strcat(html_response, type);
+        sprintf(size, "%ld %s", t, type);
     } else {
-        strcat(html_response, "-");
+        strcpy(size, "-");
     }
 
-    strcat(html_response, "</td>");
+    return size;
 }
 
-void build_table_last_date(char *html_response, struct stat st) {
-    strcat(html_response, "<td class=\"center\">");
+char* get_last_date(struct stat st) {
+    struct tm *tm = localtime(&st.st_mtime);
+    char *date = (char *) malloc(64);
 
-    struct tm *tm;
-
-    tm = localtime(&st.st_mtime);
-
-    char aux[64];
-    sprintf(aux, "%d-%02d-%02d %02d:%02d:%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-            tm->tm_hour, tm->tm_min, tm->tm_sec);
-
-    strcat(html_response, aux);
-    strcat(html_response, "</td>");
+    sprintf(date, "%d-%02d-%02d %02d:%02d:%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    
+    return date;
 }
 
 char* build_html_page(DIR *dir, char* url) {
     char **html = load_html_page();
     char *page = (char *) malloc(2 * MAX_SIZE_BUFFER);
+    char *item_template = (char *) malloc(BUFF_SIZE);
+
+    int item_template_fd = open(ITEM_TABLE_TEMPLATE, O_RDONLY);
+    read(item_template_fd, item_template, BUFF_SIZE);
+    close(item_template_fd);
+
     strcpy(page, HTTP_HEADER);
     strcat(page, html[0]);
 
@@ -101,14 +83,17 @@ char* build_html_page(DIR *dir, char* url) {
 
         char* item_url = (char *)malloc(strlen(url) + strlen(ent -> d_name) + 6);
         strcpy(item_url, url); strcat(item_url, "/"); strcat(item_url, ent -> d_name);
-
         stat(item_url, &st);
-        strcat(page, "<tr>");
-        build_table_name(page, item_url, ent->d_name, st);
-        build_table_size(page, st);
-        build_table_last_date(page, st);
-        strcat(page, "</tr>");
-    
+
+        char *type = S_ISDIR(st.st_mode) ? "folder" : "file";
+        char *size = get_size(st);
+        char *date = get_last_date(st);
+        char *item = (char *) malloc(strlen(item_template) + strlen(url) + strlen(ent -> d_name) + 100);
+
+        sprintf(item, item_template, item_url, type, ent -> d_name, size, date);
+        strcat(page, item);
+        
+        free(size); free(date); free(item); free(item_url);
 
         if(2 * MAX_SIZE_BUFFER - strlen(page) < MAX_SIZE_BUFFER) {
             page = (char *) realloc(page, 4 * MAX_SIZE_BUFFER);
@@ -116,7 +101,7 @@ char* build_html_page(DIR *dir, char* url) {
     }
 
     strcat(page, html[1]);
-    free(html);
+    free(html); free(item_template);
 
     return page;
 }
