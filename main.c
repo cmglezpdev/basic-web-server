@@ -17,10 +17,8 @@
 
 
 #define BUFSIZE 4096
-#define ERROR_TEMPLATE "./templates/error.html"
-#define TABLE_TEMPLATE "./templates/table.html"
-#define ITEM_TABLE_TEMPLATE "./templates/item_table.html"
 #define HTTP_NOT_FOUND "HTTP/1.1 404 Not Found\r\n\r\n"
+#define HTTP_OK "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
 
 #define COLOR_RED     "\x1b[31m"
 #define COLOR_GREEN   "\x1b[32m"
@@ -47,11 +45,6 @@ struct Server {
     int socket;    
 
     void (*launch)(struct Server *server);
-};
-
-struct Client {
-    int socket;
-    char* url;
 };
 
 struct Server server_contructor(int domain, int service, int protocol, int interface, int port, int backlog, char* base_dir, void (*launch)(struct Server *server)) {
@@ -120,28 +113,10 @@ void initialize_MessageError () {
 
 #pragma endregion
 
-
-
-void send_header(int client_socket, const char *key, const char *value) {
-    char* buf = malloc(BUFSIZE);
-    snprintf(buf, BUFSIZE, "%s: %s\r\n", key, value);
-    send(client_socket, buf, strlen(buf), 0);
-    free(buf);
-}
-
-int send_page(int client_socket, const char *page) {
-    char* response = malloc(strlen(page) + BUFSIZE);
-    sprintf(response, "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nContent-Type: text/html\r\n\r\n%s", strlen(page), page);
-    int ret = send(client_socket, response, strlen(response), 0);
-    free(response);
-
-    return ret;
-}
-
 int send_file(int client_socket, char* path) {
     int file_fd = open(path, O_RDONLY);
     if(file_fd < 0) {
-        return 1;
+        return EXIT_FAILURE;
     } 
     
     off_t sent = 0;
@@ -160,65 +135,7 @@ int send_file(int client_socket, char* path) {
     sendfile(client_socket, file_fd, &sent, stat_buffer.st_size);
     close(file_fd);
 
-    return 0;
-}
-
-char* build_directory_page(DIR* dir, char* url) {
-    int table_fd = open(TABLE_TEMPLATE, O_RDONLY);
-    int item_fd = open(ITEM_TABLE_TEMPLATE, O_RDONLY);
-
-    char* table_template = malloc(BUFSIZE);
-    char* item_template = malloc(BUFSIZE);
-    char* list = malloc(1); list[0] = '\0';
-    char* item;
-    char* item_url;
-
-    read(table_fd, table_template, BUFSIZE);
-    read(item_fd, item_template, BUFSIZE);
-
-    struct dirent *ent;
-    struct stat st;
-
-    while((ent = readdir(dir)) != NULL) {
-        if(ent->d_name[0] == '.') continue;
-       
-        item_url = malloc(strlen(url) + strlen(ent -> d_name) + 6);
-        strcpy(item_url, url); strcat(item_url, "/"); strcat(item_url, ent -> d_name);
-       
-        stat(item_url, &st);
-        item = malloc(strlen(item_url) + strlen(item_template) + strlen(ent -> d_name) + 100);
-        sprintf(item, item_template, item_url, ent -> d_name, (long long)st.st_size, (long long)st.st_mtime);
-       
-        list = realloc(list, strlen(list) + strlen(item) + 10);
-        strcat(list, item);
-
-        free(item_url); free(item); 
-    }
-
-    char* buffer = malloc(strlen(table_template) + strlen(list) + 2 * strlen(url) + 10);
-    sprintf(buffer, table_template, url, url, list);
-    
-    free(list);
-    free(table_template); free(item_template);
-    close(table_fd); close(item_fd);
-    return buffer;
-}
-
-char* build_error_page(char* message_error) {
-    int error_fd = open(ERROR_TEMPLATE, O_RDONLY);
-    char* error_temp = malloc(BUFSIZE);
-    read(error_fd, error_temp, BUFSIZE);
-
-    char* error_page = malloc(strlen(error_temp) + 2 * strlen(message_error) + 10);
-    sprintf(error_page, error_temp, message_error, message_error);
-    close(error_fd); free(error_temp);
-    return error_page;
-}
-
-void send_error_page(int client_socket, char* error_message) {
-    char* error_page = build_error_page(error_message);
-    send_page(client_socket, error_page);
-    free(error_page);
+    return EXIT_SUCCESS;
 }
 
 int http_handler(int client_socket, char *url) {
@@ -232,22 +149,22 @@ int http_handler(int client_socket, char *url) {
         if (send_file(client_socket, url) < 0) {
             fprintf(stderr, "%s%s%s", COLOR_RED, messagesError.sendFile, COLOR_RESET);
             close(file_fd);
-            return 1;
+            return EXIT_FAILURE;
         }
 
         close(file_fd);
-        return 0;
+        return EXIT_SUCCESS;
     } 
     // Check if the URL points to a directory
     if(stat(url, &file_stat) == 0 && S_ISDIR(file_stat.st_mode)) {
         DIR *dir = opendir(url);
-        char* page = render(dir, url);
+        char* page = build_page(dir, url);
         send(client_socket, page, strlen(page), 0);
         free(page); closedir(dir);
-        return 0;
+        return EXIT_SUCCESS;
     }
 
-    return 1;
+    return EXIT_FAILURE;
 }
 
 void launch(struct Server *server) {
@@ -280,8 +197,8 @@ int main(int argc, char *args[]) {
     initialize_MessageError();
     
     if(argc < 3) {
-        perror(messagesError.missingArguments);
-        return 1;
+        fprintf(stderr, "%s%s%s\n", COLOR_RED, messagesError.missingArguments, COLOR_RESET);
+        return EXIT_FAILURE;
     }
 
     int port  = atoi(args[1]);
@@ -290,5 +207,5 @@ int main(int argc, char *args[]) {
     struct Server server = server_contructor(AF_INET, SOCK_STREAM, 0, INADDR_ANY, port, 10, base_dir, launch);
     printf("Server launched in: %shttp://localhost:%d%s\n", COLOR_GREEN, port, COLOR_RESET);
     server.launch(&server);
-    return 0;
+    return EXIT_SUCCESS;
 }
