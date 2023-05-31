@@ -160,6 +160,9 @@
         </table>
 
         <script>
+
+            let last_select = -1;
+
             function convertSize(size) {
                 if(size === "-") return -1;
                 if(String(size).endsWith("KB")) return parseInt(size) * 1024;
@@ -168,7 +171,7 @@
             }
 
             const CompareFunctions = {
-                ByDefault: (a, b) => {
+                ByName: (a, b) => {
                     const sizeA = a.querySelectorAll(".center")[0].textContent.trim();
                     const sizeB = b.querySelectorAll(".center")[0].textContent.trim();
                     if(sizeA === "-" && sizeB !== "-") return -1;
@@ -177,12 +180,6 @@
                     const nameA = a.querySelector("span").textContent.trim();
                     const nameB = b.querySelector("span").textContent.trim();
                     return (nameA === nameB) ? 0 : nameA < nameB ? -1 : 1;  
-                },
-
-                ByName: (a, b) => {
-                    const nameA = a.querySelector("span").textContent.trim();
-                    const nameB = b.querySelector("span").textContent.trim();
-                    return (nameA === nameB) ? 0 : nameA < nameB ? -1 : 1;
                 },
 
                 ByLastDate: (a, b) => {
@@ -208,7 +205,7 @@
                     case 3:
                         return CompareFunctions.ByLastDate(a, b);
                     default:
-                        return CompareFunctions.ByDefault(a, b);
+                        return CompareFunctions.ByName(a, b);
                 }
             }
 
@@ -217,7 +214,13 @@
                 let currentRows = Array.from(table.querySelectorAll("tr"));
                 [_, ...newRows] = currentRows;
 
-                newRows.sort((a, b) => compare(a, b, typeSort));
+
+                if(typeSort === last_select) {
+                    newRows = newRows.reverse();
+                } else {
+                    last_select = typeSort;
+                    newRows.sort((a, b) => compare(a, b, typeSort));
+                }
 
                 currentRows.forEach(row => {
                     if (row.parentNode === table) {
@@ -232,7 +235,7 @@
                 const headers = document.querySelector("#table-headers");
                 headers.querySelectorAll("th").forEach((th, i) => th.addEventListener("click", () => sortTable(i + 1, true)));
                 
-                sortTable(0, false);
+                sortTable(1, false);
             });
         </script>
     </body>
