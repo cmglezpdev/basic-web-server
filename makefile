@@ -2,7 +2,7 @@ port ?= 8080
 root ?= /home
 
 dev:
-	gcc main.c -o main && ./main $(port) $(root)
+	gcc main.c buildpage.c server.c utils.c -o main && ./main $(port) $(root)
 
 build:
-	gcc main.c -o main
+	gcc main.c buildpage.c server.c utils.c
