@@ -1,13 +1,6 @@
-#include "builtin_page.h"
+#include "buildpage.h"
 
-#define MAX_SIZE_BUFFER 10240
-#define BUFF_SIZE 1024
 
-#define HTML_PAGE "./templates/page.html"
-#define ITEM_TABLE_TEMPLATE "./templates/item.html"
-
-#define HTTP_HEADER "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-#define HTML_TABLE_HEAR "<!-- TABLE_HEAR -->"
 
 char **load_html_page() {
     int html_fs = open(HTML_PAGE, O_RDONLY);
