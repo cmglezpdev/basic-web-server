@@ -29,14 +29,14 @@ char* get_size(struct stat st) {
 
         if (t > 1024) {
             t /= 1024;
-            type = " mb";
+            type = "MB";
 
             if (t > 1024) {
                 t /= 1024;
-                type = " gb";
+                type = "GB";
             }
         } else {
-            type = " kb";
+            type = "KB";
         }
 
         sprintf(size, "%ld %s", t, type);
