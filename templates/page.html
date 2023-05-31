@@ -143,92 +143,98 @@
             color: #00f;
         }
 
+        #table-headers th:hover {
+            cursor: default;
+            color: #ccc;
+        }
     </style>
 </head>
+    <body>
+        <table id="my-table">
+            <tr id="table-headers">
+                <th>Name</th>
+                <th class="center">Size</th>
+                <th class="center">Last Date</th>
+            </tr>
+            <!-- TABLE_HEAR -->
+        </table>
 
-<body>
+        <script>
+            function convertSize(size) {
+                if(size === "-") return -1;
+                if(String(size).endsWith("KB")) return parseInt(size) * 1024;
+                if(String(size).endsWith("MB")) return parseInt(size) * 1024 * 1024;
+                return parseInt(size) * 1024 * 1024 * 1024;
+            }
 
-    <table id="myTable">
-        <tr>
-            <th onclick="sortTable(0,false)">Name</th>
-            <th class="center" onclick="sortTable(1,false)">Size</th>
-            <th class="center" onclick="sortTable(2,false)">Last Date</th>
-        </tr>
-        <!-- TABLE_HEAR -->
-    </table>
+            const CompareFunctions = {
+                ByDefault: (a, b) => {
+                    const sizeA = a.querySelectorAll(".center")[0].textContent.trim();
+                    const sizeB = b.querySelectorAll(".center")[0].textContent.trim();
+                    if(sizeA === "-" && sizeB !== "-") return -1;
+                    if(sizeA !== "-" && sizeB === "-") return 1;
+                    
+                    const nameA = a.querySelector("span").textContent.trim();
+                    const nameB = b.querySelector("span").textContent.trim();
+                    return (nameA === nameB) ? 0 : nameA < nameB ? -1 : 1;  
+                },
 
-    <script>
+                ByName: (a, b) => {
+                    const nameA = a.querySelector("span").textContent.trim();
+                    const nameB = b.querySelector("span").textContent.trim();
+                    return (nameA === nameB) ? 0 : nameA < nameB ? -1 : 1;
+                },
 
-        function sortTable(n, onlyAsc) {
-            let table, rows, switching, i, x, y, xComp, yComp, shouldSwitch, dir, switchCount = 0;
-            table = document.getElementById("myTable");
-            switching = true;
+                ByLastDate: (a, b) => {
+                    const dateA = a.querySelectorAll(".center")[1].textContent.trim();
+                    const dateB = b.querySelectorAll(".center")[1].textContent.trim();
+                    return (dateA === dateB) ? 0 : dateA < dateB ? -1 : 1;
+                },
 
-            dir = "asc";
+                BySize: (a, b) => {
+                    let sizeA = a.querySelectorAll(".center")[0].textContent.trim();
+                    let sizeB = b.querySelectorAll(".center")[0].textContent.trim();
+                    return convertSize(sizeA) - convertSize(sizeB);
+                },
+                
+            };
 
-            while (switching) {
-                switching = false;
-                rows = table.rows;
-
-                for (i = 2; i < (rows.length - 1); i++) {
-                    shouldSwitch = false;
-
-                    x = rows[i].getElementsByTagName("TD")[n];
-                    y = rows[i + 1].getElementsByTagName("TD")[n];
-
-                    if (n === 0) {
-                        xComp = x.innerHTML.toLowerCase();
-                        yComp = y.innerHTML.toLowerCase();
-                    } else if (n === 1) {
-                        let xSize = x.innerHTML === "-" ? "-1" : x.innerHTML.substring(0, x.innerHTML.length - 3);
-                        let ySize = y.innerHTML === "-" ? "-1" : y.innerHTML.substring(0, y.innerHTML.length - 3);
-                        xComp = parseInt(xSize);
-                        yComp = parseInt(ySize);
-
-                        if (x.innerHTML !== "-") {
-                            let xType = x.innerHTML.substring(x.innerHTML.length - 2);
-                            if (xType === "mb") xComp *= 1024;
-                            if (xType === "gb") xComp *= (1024 * 1024);
-                        }
-
-                        if (y.innerHTML !== "-") {
-                            let yType = y.innerHTML.substring(y.innerHTML.length - 2);
-                            if (yType === "mb") yComp *= 1024;
-                            if (yType === "mb") yComp *= (1024 * 1024);
-                        }
-                    } else {
-                        xComp = new Date(x.innerHTML);
-                        yComp = new Date(y.innerHTML);
-                    }
-
-                    if (dir === "asc") {
-                        if (xComp > yComp) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    } else if (dir === "desc") {
-                        if (xComp < yComp) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    }
-                }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-
-                    switchCount++;
-                } else {
-                    if (!onlyAsc && switchCount === 0 && dir === "asc") {
-                        dir = "desc";
-                        switching = true;
-                    }
+            function compare(a, b, typeSort) {
+                switch(typeSort) {
+                    case 1:
+                        return CompareFunctions.ByName(a, b);
+                    case 2:
+                        return CompareFunctions.BySize(a, b);
+                    case 3:
+                        return CompareFunctions.ByLastDate(a, b);
+                    default:
+                        return CompareFunctions.ByDefault(a, b);
                 }
             }
-        }
 
-        document.addEventListener('DOMContentLoaded', () => sortTable(0, true));
-    </script>
-</body>
+            function sortTable(typeSort, Asc) {
+                let table = document.getElementById("my-table");
+                let currentRows = Array.from(table.querySelectorAll("tr"));
+                [_, ...newRows] = currentRows;
+
+                newRows.sort((a, b) => compare(a, b, typeSort));
+
+                currentRows.forEach(row => {
+                    if (row.parentNode === table) {
+                        table.removeChild(row);
+                    }
+                });
+
+                newRows.forEach(row => table.appendChild(row));
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const headers = document.querySelector("#table-headers");
+                headers.querySelectorAll("th").forEach((th, i) => th.addEventListener("click", () => sortTable(i + 1, true)));
+                
+                sortTable(0, false);
+            });
+        </script>
+    </body>
 
 </html>
