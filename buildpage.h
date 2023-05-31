@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define MAX_SIZE_BUFFER 10240
+#define MAX_SIZE_BUFFER 15360
 #define BUFF_SIZE 1024
 
 #define HTML_PAGE "./templates/page.html"

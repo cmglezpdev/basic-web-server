@@ -1,7 +1,6 @@
 #include "buildpage.h"
 
 
-
 char **load_html_page() {
     int html_fs = open(HTML_PAGE, O_RDONLY);
     char buffer[MAX_SIZE_BUFFER];
