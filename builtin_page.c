@@ -63,7 +63,7 @@ char* get_last_date(struct stat st) {
     return date;
 }
 
-char* build_html_page(DIR *dir, char* url) {
+char* build_page(DIR *dir, char* url) {
     char **html = load_html_page();
     char *page = (char *) malloc(2 * MAX_SIZE_BUFFER);
     char *item_template = (char *) malloc(BUFF_SIZE);
@@ -103,10 +103,5 @@ char* build_html_page(DIR *dir, char* url) {
     strcat(page, html[1]);
     free(html); free(item_template);
 
-    return page;
-}
-
-char *render(DIR *dir, char* url) {
-    char* page = build_html_page(dir, url);
     return page;
 }
