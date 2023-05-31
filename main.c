@@ -27,19 +27,34 @@ void launch(struct Server *server) {
         url = malloc(BUFFSIZE);
         int client_socket = accept(server -> socket, (struct sockaddr *)&server -> address, (socklen_t *)&address_length);
         
-        recv(client_socket, buffer, BUFFSIZE, 0);
-        sscanf(buffer, "GET %s ", url);
-      
-        if(url != NULL && strcmp(url, "/") == 0) 
-            strcpy(url, server -> base_dir);
-
-        if(url == NULL || http_handler(client_socket, url) != 0) {
-            char *response = HTTP_NOT_FOUND;
-            send(client_socket, response, strlen(response), 0);  
+        pid_t pid = fork();
+        if(pid < 0) {
+            fprintf(stderr, "%sFail to create a new child process%s\n", COLOR_RED, COLOR_RESET);
+            exit(EXIT_FAILURE);
         }
 
-        close(client_socket);
-        free(buffer); free(url);
+        if(pid == 0) {
+            close(server -> socket);
+
+            recv(client_socket, buffer, BUFFSIZE, 0);
+            sscanf(buffer, "GET %s ", url);
+        
+            if(url != NULL && strcmp(url, "/") == 0) 
+                strcpy(url, server -> base_dir);
+
+            if(url == NULL || http_handler(client_socket, url) != 0) {
+                char *response = HTTP_NOT_FOUND;
+                send(client_socket, response, strlen(response), 0);  
+            }
+
+            close(client_socket);
+            free(buffer); free(url);
+
+            // end child process
+            exit(EXIT_SUCCESS); 
+        } else {
+            close(client_socket);
+        }
     }
 }
 
