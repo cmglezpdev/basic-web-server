@@ -55,6 +55,22 @@ char* get_last_date(struct stat st) {
     return date;
 }
 
+char* replace(char* string, char* pattern, char* replace) {
+    char *result = (char *) malloc(BUFF_SIZE);
+    int j = 0;
+    for(int i = 0; i < strlen(string); i ++) {
+        if(strstr((string + i), pattern) == (string + i)) {
+            strcat(result, replace);
+            j += strlen(replace);
+            i += strlen(pattern) - 1;
+        } else {
+            result[j ++] = string[i];
+        }
+    }
+    result[j] = '\0';
+    return result;
+}
+
 char* build_page(DIR *dir, char* url) {
     char **html = load_html_page();
     char *page = (char *) malloc(2 * MAX_SIZE_BUFFER);

@@ -22,4 +22,6 @@
 
 char* build_page(DIR *dir, char* url);
 
+char* replace(char* string, char* pattern, char* replace);
+
 #endif //FTP_BUILDPAGE_H
