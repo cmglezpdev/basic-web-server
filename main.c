@@ -41,6 +41,7 @@ void launch(struct Server *server) {
         
             if(url != NULL && strcmp(url, "/") == 0) 
                 strcpy(url, server -> base_dir);
+            if(url != NULL) url = replace(url, "%20", " ");
 
             if(url == NULL || http_handler(client_socket, url) != 0) {
                 char *response = HTTP_NOT_FOUND;
