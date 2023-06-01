@@ -49,6 +49,11 @@ int send_file(int client_socket, char* path) {
     off_t sent = 0;
     struct stat stat_buffer;
     fstat(file_fd, &stat_buffer);
+    
+    int i  = strlen(path) - 1;
+    for(; path[i] != '/'; i --);
+    char* filename = (path + i + 1);
+    puts(filename);
 
     char header[BUFFSIZE];
     snprintf(header, sizeof(header), 
@@ -56,7 +61,7 @@ int send_file(int client_socket, char* path) {
         "Content-Type: application/octet-stream\r\n"
         "Content-Disposition: attachment; filename=\"%s\"\r\n"
         "Content-Length: %ld\r\n"
-        "\r\n", path, stat_buffer.st_size);
+        "\r\n", filename, stat_buffer.st_size);
 
     send(client_socket, header, strlen(header), 0);
     sendfile(client_socket, file_fd, &sent, stat_buffer.st_size);
