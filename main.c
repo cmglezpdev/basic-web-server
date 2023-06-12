@@ -19,12 +19,13 @@
 
 
 void launch(struct Server *server) {
-    char *buffer, *url;
+    char *buffer, *url, *typeFetch;
     int address_length = sizeof(server -> address);
 
     while (1) {
         buffer = malloc(BUFFSIZE);
         url = malloc(BUFFSIZE);
+        typeFetch = malloc(100);
         int client_socket = accept(server -> socket, (struct sockaddr *)&server -> address, (socklen_t *)&address_length);
         
         pid_t pid = fork();
@@ -36,8 +37,9 @@ void launch(struct Server *server) {
         if(pid == 0) {
             close(server -> socket);
 
-            recv(client_socket, buffer, BUFFSIZE, 0);
-            sscanf(buffer, "GET %s ", url);
+            recv(client_socket, buffer, BUFFSIZE, 0); 
+            puts(buffer);
+            sscanf(buffer, "%s %s ", typeFetch, url);
         
             if(url != NULL && strcmp(url, "/") == 0) 
                 strcpy(url, server -> base_dir);
