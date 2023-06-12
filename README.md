@@ -26,3 +26,8 @@ gcc main.c buildpage.c server.c utils.c -o main && ./main <port> <root path>
 ```
 
 where `<port>` and `<root path>` are the port and the root path respectly.
+
+
+## Documentation
+
+You can read the explanation of the functionality of server [here](./DOCUMENTATION.md)
